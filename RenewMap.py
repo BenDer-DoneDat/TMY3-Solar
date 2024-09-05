@@ -1,6 +1,6 @@
 #%%
 
-#Import packages
+# Import packages
 import pandas as pd
 from datetime import timedelta
 
@@ -16,6 +16,7 @@ tmy3_extract = tmy3[['Date (MM/DD/YYYY)', 'Time (HH:MM)','GHI (W/m^2)', 'DNI (W/
 
 #%%
 # Concat Date and Time into one feature
+pd.options.mode.chained_assignment = None
 tmy3_extract["DateTime"] = tmy3_extract["Date (MM/DD/YYYY)"].astype(str) + " " + tmy3_extract["Time (HH:MM)"].astype(str)
 
 #%%
@@ -34,6 +35,7 @@ TMY3_df = tmy3_extract[['id', 'DateTimeFixed', 'GHI (W/m^2)', 'DNI (W/m^2)']].se
 
 #%%
 
+# For-loop to create final dataframe: TMY3_weekly
 count = 0
 TMY3_weekly = pd.DataFrame(columns=['id','site_name','coordinates','data'])#.set_index('id')
 
@@ -43,8 +45,8 @@ for station in TMY3_df['id'].unique(): #1020 stations
         # Retrieve site name
         site_name = StationMeta_extract[StationMeta_extract['id'] == station].iloc[0,0]
         
-        # Generate coordinates for each site
-        coordinates_df = StationMeta_extract[StationMeta_extract['id'] == station].iloc[:,3:5]
+        # Creating a list with coordinates for each site
+        coordinates_df = [StationMeta_extract[StationMeta_extract['id'] == station].iloc[0,3],StationMeta_extract[StationMeta_extract['id'] == station].iloc[0,4]]
                 
         # Resample data to weekly then generate timestamp (MS) since epoch
         resample_df = TMY3_df[TMY3_df['id'] == station].iloc[:,1:].resample('W').mean()
@@ -55,26 +57,13 @@ for station in TMY3_df['id'].unique(): #1020 stations
         TMY3_weekly.loc[count] = [station, site_name, coordinates_df, resample_df]
         count += 1
 
-TMY3_weekly.to_json('Weekly_Weather_Data_by_Station.json')
+#%%
 
+# Export to json
+TMY3_weekly.to_json('Weekly_Weather_Data_by_Station.json')
 
 # %%
 
+# Tests:
 # To check nested dataframe: print(TMY3_weekly['data'].iloc[0])
-
-# Graveyard
-"""
-# Concat Long and Lat into one feature
-df = pd.DataFrame({'ID': StationMeta_extract['station_number'], 'Name': StationMeta_extract['Site Name'],'Coordinates': pd.Series({'Latitude': StationMeta_extract["Latitude"],
-                            'Longitude': StationMeta_extract["Longitude"]})})
-OR
-coordinates = pd.DataFrame({'Latitude': StationMeta_extract["Latitude"],
-                            'Longitude': StationMeta_extract["Longitude"]})
-StationMeta_extract['coordinates'] = coordinates
-StationMeta_df = pd.DataFrame({'station_number':[1,2,3], 'coordinates':[coordinates]})
-
-"""
-"""
-# Joining both dataset into a one dataframe
-TMY3 = pd.merge(tmy3_extract, StationMeta_extract, on = "id", how = "outer") 
-"""
+# To check output json: pd.read_json('Weekly_Weather_Data_by_Station.json')
