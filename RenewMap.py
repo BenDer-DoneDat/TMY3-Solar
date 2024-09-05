@@ -30,8 +30,8 @@ tmy3_extract.loc[tmy3_extract["Time (HH:MM)"] == "24:00","DateTimeFixed"] = tmy3
 StationMeta_extract = TMY3_StationMeta.iloc[:,0:5].rename(columns={'USAF': 'id', 'Site Name': 'site_name'})
 
 # Extracting the relevant features from tmy3_extract
-tmy3_extract.rename(columns={'station_number': 'id'}, inplace=True)
-TMY3_df = tmy3_extract[['id', 'DateTimeFixed', 'GHI (W/m^2)', 'DNI (W/m^2)']].set_index('DateTimeFixed').copy()
+tmy3_extract.rename(columns={'station_number': 'id', 'GHI (W/m^2)': 'ghi', 'DNI (W/m^2)': 'dni'}, inplace=True)
+TMY3_df = tmy3_extract[['id', 'DateTimeFixed', 'ghi', 'dni']].set_index('DateTimeFixed').copy()
 
 #%%
 
@@ -51,7 +51,7 @@ for station in TMY3_df['id'].unique(): #1020 stations
         # Resample data to weekly then generate timestamp (MS) since epoch
         resample_df = TMY3_df[TMY3_df['id'] == station].iloc[:,1:].resample('W').mean()
         resample_df.insert(0, 'timestamp', resample_df.index.to_series().apply(lambda x: x.timestamp()))
-        resample_df.reset_index(drop=True) # Dropping datetime index #(optional)
+        resample_df = resample_df.reset_index(drop=True)  # Replacing datetime with timestamp as index
 
         # Package each site's coordinates and date into TMY3_weekly         
         TMY3_weekly.loc[count] = [station, site_name, coordinates_df, resample_df]
